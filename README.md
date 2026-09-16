@@ -1,6 +1,6 @@
 # Collaborative Kanban Board
 
-A focused, production-minded real-time Kanban board application built with a React frontend and an in-memory Express backend with Server-Sent Events (SSE).
+A focused, production-minded real-time Kanban board application built with a React frontend and an Express backend using Prisma and Server-Sent Events (SSE).
 
 ---
 
@@ -13,7 +13,7 @@ A focused, production-minded real-time Kanban board application built with a Rea
 ```bash
 cd server
 bun install
-bun run app.js
+bun run dev
 # Backend runs at http://localhost:3001
 ```
 
@@ -50,7 +50,7 @@ Open `http://localhost:5173` in your browser. Open multiple tabs/windows to test
  ┌───────────────────────────────────────┴────────────────┐
  │                 Express Backend (:3001)                │
  │  • REST Endpoints: GET/POST/PATCH/DELETE /api/tasks    │
- │  • In-Memory Store: 4 Columns (Backlog, Todo, etc.)    │
+ │  • Database: Prisma ORM for structured storage         │
  │  • SSE Event Broadcaster: GET /api/events              │
  │  • Simulated Error Support for Rollback Testing        │
  └────────────────────────────────────────────────────────┘
@@ -106,17 +106,11 @@ When multiple users are modifying the board concurrently:
 | **Optimistic Updates** | Instant UI updates with snapshot rollback and Sonner error notifications. |
 | **Search & Filters** | Title search, priority dropdown, assignee selection, all synchronized to URL query params. |
 | **Real-Time Collaboration** | Native SSE (`EventSource`) with broadcast & conflict reconciliation. |
-| **Backend Storage** | In-memory JavaScript data store conforming to the required task model. |
+| **Backend Storage** | Prisma ORM with relational data store conforming to the required task model. |
 
 ---
 
 ## ⚖️ Trade-offs & Deliberate Decisions
 
-- **In-Memory Store over Database**: As per instructions, in-memory storage was used to keep the backend lightweight and zero-config for reviewer evaluation.
 - **Server-Sent Events over WebSockets**: SSE was selected over WebSockets because client-to-server mutations are already cleanly expressed as REST HTTP requests, and SSE provides built-in browser reconnection, simplicity, and low overhead for server-to-client broadcasts.
 - **Debounced / Drag-End Persistence**: Movement is persisted on `onDragEnd` rather than every sub-pixel `onDragOver` frame to avoid spamming the backend while preserving fluid 60fps animations.
-
----
-
-## 🤖 Coding Agent Usage Note
-This project was developed with the assistance of an agentic coding tool for rapid scaffolding, refactoring, and integration testing. All state transitions, conflict reconciliation logic, DnD constraints, and API error rollback mechanisms were personally verified and tested across multiple browser sessions.
