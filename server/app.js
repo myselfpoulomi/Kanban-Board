@@ -7,89 +7,8 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// In-memory data store for Kanban tasks
-const VALID_STATUSES = ["backlog", "todo", "in-progress", "done"];
-
-let board = {
-  backlog: [
-    {
-      id: "TASK-101",
-      title: "Set up CI/CD pipeline",
-      description: "Automate build, lint, and test workflows on GitHub Actions.",
-      priority: "high",
-      assignee: "Alice",
-      status: "backlog",
-      position: 0,
-      updatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    },
-    {
-      id: "TASK-102",
-      title: "Design database schema",
-      description: "Draft ER diagrams and relationship models for multi-tenant accounts.",
-      priority: "medium",
-      assignee: "David",
-      status: "backlog",
-      position: 1,
-      updatedAt: new Date(Date.now() - 3600000 * 18).toISOString(),
-    },
-  ],
-  todo: [
-    {
-      id: "TASK-201",
-      title: "Implement user authentication",
-      description: "Add JWT authentication, sign in/sign up screens, and session refresh.",
-      priority: "high",
-      assignee: "Bob",
-      status: "todo",
-      position: 0,
-      updatedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    },
-    {
-      id: "TASK-202",
-      title: "Add dark mode toggle",
-      description: "Create theme switcher component and integrate with Tailwind dark class.",
-      priority: "low",
-      assignee: "Alice",
-      status: "todo",
-      position: 1,
-      updatedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-    },
-  ],
-  "in-progress": [
-    {
-      id: "TASK-301",
-      title: "Real-time SSE event listener",
-      description: "Connect frontend to /api/events stream and reconcile incoming updates.",
-      priority: "high",
-      assignee: "Charlie",
-      status: "in-progress",
-      position: 0,
-      updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    },
-    {
-      id: "TASK-302",
-      title: "Refactor drag-and-drop animations",
-      description: "Smooth drop animations with @dnd-kit and prevent layout shifts.",
-      priority: "medium",
-      assignee: "Bob",
-      status: "in-progress",
-      position: 1,
-      updatedAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-  ],
-  done: [
-    {
-      id: "TASK-401",
-      title: "Project boilerplate setup",
-      description: "Initial React + Vite client and Express in-memory server scaffold.",
-      priority: "medium",
-      assignee: "Alice",
-      status: "done",
-      position: 0,
-      updatedAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-    },
-  ],
-};
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 // SSE Connected Clients set
 const sseClients = new Set();
@@ -111,26 +30,6 @@ function broadcastEvent(type, payload) {
   }
 }
 
-// Re-index position property for all tasks in a column
-function normalizePositions(columnId) {
-  if (board[columnId]) {
-    board[columnId].forEach((task, idx) => {
-      task.position = idx;
-    });
-  }
-}
-
-// Find a task across all columns
-function findTask(id) {
-  for (const [status, tasks] of Object.entries(board)) {
-    const index = tasks.findIndex((t) => t.id === id);
-    if (index !== -1) {
-      return { task: tasks[index], status, index };
-    }
-  }
-  return null;
-}
-
 // Helper middleware for deliberate failure simulation when requested
 function maybeSimulateFailure(req, res, next) {
   const shouldFail =
@@ -145,13 +44,59 @@ function maybeSimulateFailure(req, res, next) {
   next();
 }
 
+// Normalizes positions to be contiguous integers for a given status
+async function normalizePositions(status) {
+  const tasks = await prisma.task.findMany({
+    where: { status },
+    orderBy: { position: "asc" },
+  });
+
+  const updates = tasks.map((t, index) => {
+    if (t.position !== index) {
+      return prisma.task.update({
+        where: { id: t.id },
+        data: { position: index },
+      });
+    }
+    return null;
+  }).filter(Boolean);
+
+  if (updates.length > 0) {
+    await prisma.$transaction(updates);
+  }
+}
+
 // -------------------------------------------------------------
 // ROUTES
 // -------------------------------------------------------------
 
 // GET /api/board - Returns board grouped by columns
-app.get("/api/board", (req, res) => {
-  res.json(board);
+app.get("/api/board", async (req, res) => {
+  try {
+    const tasks = await prisma.task.findMany({
+      orderBy: { position: "asc" },
+    });
+
+    const board = {
+      backlog: [],
+      todo: [],
+      "in-progress": [],
+      done: [],
+    };
+
+    tasks.forEach(task => {
+      if (board[task.status]) {
+        board[task.status].push(task);
+      } else {
+         board[task.status] = [task];
+      }
+    });
+
+    res.json(board);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch board" });
+  }
 });
 
 // GET /api/events - Server-Sent Events stream
@@ -178,7 +123,7 @@ app.get("/api/events", (req, res) => {
 });
 
 // POST /api/tasks - Create task
-app.post("/api/tasks", maybeSimulateFailure, (req, res) => {
+app.post("/api/tasks", maybeSimulateFailure, async (req, res) => {
   const body = req.body || {};
   const { title, description = "", priority = "medium", assignee = "", status = "backlog" } = body;
 
@@ -186,92 +131,136 @@ app.post("/api/tasks", maybeSimulateFailure, (req, res) => {
     return res.status(400).json({ error: "Title is required" });
   }
 
+  const VALID_STATUSES = ["backlog", "todo", "in-progress", "done"];
   const targetStatus = VALID_STATUSES.includes(status) ? status : "backlog";
-  const newTask = {
-    id: `TASK-${Math.floor(1000 + Math.random() * 9000)}`,
-    title: title.trim(),
-    description: (description || "").trim(),
-    priority: ["low", "medium", "high"].includes(priority) ? priority : "medium",
-    assignee: (assignee || "").trim(),
-    status: targetStatus,
-    position: board[targetStatus].length,
-    updatedAt: new Date().toISOString(),
-  };
 
-  board[targetStatus].push(newTask);
-  normalizePositions(targetStatus);
+  try {
+    const count = await prisma.task.count({ where: { status: targetStatus } });
+    const generatedId = `TASK-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  broadcastEvent("task_created", newTask);
+    const newTask = await prisma.task.create({
+      data: {
+        id: generatedId,
+        title: title.trim(),
+        description: (description || "").trim(),
+        priority: ["low", "medium", "high"].includes(priority) ? priority : "medium",
+        assignee: (assignee || "").trim(),
+        status: targetStatus,
+        position: count,
+      },
+    });
 
-  res.status(201).json(newTask);
+    broadcastEvent("task_created", newTask);
+    res.status(201).json(newTask);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create task" });
+  }
 });
 
 // PATCH /api/tasks/:id - Update task details, status, or position
-app.patch("/api/tasks/:id", maybeSimulateFailure, (req, res) => {
+app.patch("/api/tasks/:id", maybeSimulateFailure, async (req, res) => {
   const { id } = req.params;
   const updates = req.body || {};
 
-  const found = findTask(id);
-  if (!found) {
-    return res.status(404).json({ error: "Task not found" });
-  }
-
-  const { task, status: currentStatus, index: currentIndex } = found;
-  const newStatus = updates.status && VALID_STATUSES.includes(updates.status) ? updates.status : currentStatus;
-  const targetPosition = typeof updates.position === "number" ? updates.position : undefined;
-
-  // Build updated task object
-  const updatedTask = {
-    ...task,
-    ...updates,
-    id: task.id, // Prevent ID mutation
-    status: newStatus,
-    updatedAt: new Date().toISOString(),
-  };
-
-  if (newStatus !== currentStatus) {
-    // Moved across columns
-    board[currentStatus].splice(currentIndex, 1);
-    normalizePositions(currentStatus);
-
-    if (targetPosition !== undefined && targetPosition >= 0) {
-      board[newStatus].splice(targetPosition, 0, updatedTask);
-    } else {
-      board[newStatus].push(updatedTask);
+  try {
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
     }
-    normalizePositions(newStatus);
-  } else {
-    // Moved within same column or simple field update
-    if (targetPosition !== undefined && targetPosition !== currentIndex) {
-      board[currentStatus].splice(currentIndex, 1);
-      board[currentStatus].splice(targetPosition, 0, updatedTask);
-      normalizePositions(currentStatus);
+
+    const VALID_STATUSES = ["backlog", "todo", "in-progress", "done"];
+    const newStatus = updates.status && VALID_STATUSES.includes(updates.status) ? updates.status : task.status;
+    const targetPosition = typeof updates.position === "number" ? updates.position : undefined;
+    const oldStatus = task.status;
+
+    let updatedTask;
+
+    if (newStatus !== oldStatus) {
+      // Moved across columns
+      updatedTask = await prisma.task.update({
+        where: { id },
+        data: {
+          title: updates.title,
+          description: updates.description,
+          priority: updates.priority,
+          assignee: updates.assignee,
+          status: newStatus,
+          position: targetPosition !== undefined ? targetPosition : await prisma.task.count({ where: { status: newStatus } })
+        }
+      });
+      
+      if (targetPosition !== undefined) {
+         // Shift other items in new column down
+         await prisma.task.updateMany({
+           where: { status: newStatus, id: { not: id }, position: { gte: targetPosition } },
+           data: { position: { increment: 1 } }
+         });
+      }
+      
+      await normalizePositions(oldStatus);
+      await normalizePositions(newStatus);
+      
     } else {
-      board[currentStatus][currentIndex] = updatedTask;
+      // Moved within same column or simple field update
+      const oldPosition = task.position;
+      
+      if (targetPosition !== undefined && targetPosition !== oldPosition) {
+        if (targetPosition > oldPosition) {
+           await prisma.task.updateMany({
+              where: { status: newStatus, id: { not: id }, position: { gt: oldPosition, lte: targetPosition } },
+              data: { position: { decrement: 1 } }
+           });
+        } else {
+           await prisma.task.updateMany({
+              where: { status: newStatus, id: { not: id }, position: { gte: targetPosition, lt: oldPosition } },
+              data: { position: { increment: 1 } }
+           });
+        }
+      }
+      
+      updatedTask = await prisma.task.update({
+        where: { id },
+        data: {
+          title: updates.title,
+          description: updates.description,
+          priority: updates.priority,
+          assignee: updates.assignee,
+          status: newStatus,
+          position: targetPosition !== undefined ? targetPosition : oldPosition
+        }
+      });
+      
+      await normalizePositions(newStatus);
     }
+
+    broadcastEvent("task_updated", updatedTask);
+    res.json(updatedTask);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update task" });
   }
-
-  broadcastEvent("task_updated", updatedTask);
-
-  res.json(updatedTask);
 });
 
 // DELETE /api/tasks/:id - Delete task
-app.delete("/api/tasks/:id", maybeSimulateFailure, (req, res) => {
+app.delete("/api/tasks/:id", maybeSimulateFailure, async (req, res) => {
   const { id } = req.params;
 
-  const found = findTask(id);
-  if (!found) {
-    return res.status(404).json({ error: "Task not found" });
+  try {
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    await prisma.task.delete({ where: { id } });
+    await normalizePositions(task.status);
+
+    broadcastEvent("task_deleted", { id: task.id, status: task.status });
+    res.json({ success: true, id: task.id, status: task.status });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete task" });
   }
-
-  const { status, index, task } = found;
-  board[status].splice(index, 1);
-  normalizePositions(status);
-
-  broadcastEvent("task_deleted", { id: task.id, status });
-
-  res.json({ success: true, id: task.id, status });
 });
 
 app.listen(PORT, () => {

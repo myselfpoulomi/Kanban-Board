@@ -8,7 +8,12 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 
-import { initialColumns } from "./mockData";
+const initialColumns = [
+  { id: "backlog", title: "Backlog" },
+  { id: "todo", title: "Todo" },
+  { id: "in-progress", title: "In Progress" },
+  { id: "done", title: "Done" },
+];
 import KanbanColumn from "./KanbanColumn";
 import KanbanCard from "./KanbanCard";
 import TaskModal from "./TaskModal";
