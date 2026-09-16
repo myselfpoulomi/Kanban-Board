@@ -9,10 +9,10 @@ import {
 } from "@dnd-kit/core";
 
 const initialColumns = [
-  { id: "backlog", title: "Backlog" },
-  { id: "todo", title: "Todo" },
-  { id: "in-progress", title: "In Progress" },
-  { id: "done", title: "Done" },
+  { id: "backlog", title: "Backlog", icon: "CircleDashed", color: "#a8a29e" },
+  { id: "todo", title: "Todo", icon: "CircleDot", color: "#60a5fa" },
+  { id: "in-progress", title: "In Progress", icon: "Clock", color: "#fbbf24" },
+  { id: "done", title: "Done", icon: "CheckCircle2", color: "#4ade80" },
 ];
 import KanbanColumn from "./KanbanColumn";
 import KanbanCard from "./KanbanCard";
