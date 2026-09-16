@@ -35,8 +35,8 @@ function SidebarItem({
         transition-colors
         ${
           active
-            ? "bg-[#29292c] text-[#e8e8ea]"
-            : "text-[#8a8a8f] hover:bg-[#1b1b1d] hover:text-[#c9c9cc]"
+            ? "bg-[#141414] text-[#e8e8ea]"
+            : "text-[#8a8a8f] hover:bg-[#0a0a0a] hover:text-[#c9c9cc]"
         }
         ${indent ? "pl-5" : ""}
       `}
@@ -83,7 +83,7 @@ function SectionTitle({ children }) {
 
 export default function Sidebar() {
   return (
-    <aside className="flex h-screen w-[220px] shrink-0 flex-col border-r border-[#242426] bg-[#111112]">
+    <aside className="flex h-screen w-[220px] shrink-0 flex-col border-r border-[#1a1a1a] bg-[#000000]">
       {/* Workspace header */}
       <div className="flex h-12 items-center px-3">
         <button
@@ -180,7 +180,7 @@ export default function Sidebar() {
           type="button"
           className="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-left text-[11px] text-[#aaaab0] hover:bg-white/[0.04]"
         >
-          <span className="flex h-4 w-4 items-center justify-center rounded-[3px] bg-emerald-500/90 text-[8px] text-black">
+          <span className="flex h-4 w-4 items-center justify-center rounded-[3px] bg-white text-[8px] text-black">
             D
           </span>
 
@@ -221,7 +221,7 @@ export default function Sidebar() {
           <div className="ml-5 border-l border-[#29292b] pl-2">
             <button
               type="button"
-              className="flex w-full items-center rounded-md bg-[#29292c] px-2 py-[5px] text-left text-[10px] font-medium text-[#dedee1]"
+              className="flex w-full items-center rounded-md bg-[#141414] px-2 py-[5px] text-left text-[10px] font-medium text-[#dedee1]"
             >
               Current
             </button>

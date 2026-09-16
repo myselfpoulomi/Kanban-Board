@@ -11,7 +11,7 @@
     sans-serif;
 
   color-scheme: dark;
-  background: #0f0f10;
+  background: #000000;
 }
 
 * {
@@ -28,7 +28,7 @@ body,
 
 body {
   overflow: hidden;
-  background: #0f0f10;
+  background: #000000;
 }
 
 /* Thin scrollbar similar to the reference UI */
@@ -43,12 +43,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2c2c2f;
+  background: #222222;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b3b3f;
+  background: #333333;
 }
 
 button {

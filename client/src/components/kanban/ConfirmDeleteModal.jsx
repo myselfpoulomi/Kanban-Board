@@ -5,9 +5,9 @@ export default function ConfirmDeleteModal({ isOpen, onClose, onConfirm, isDelet
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-xl border border-[#303033] bg-[#1b1b1d] p-6 shadow-2xl">
+      <div className="w-full max-w-sm rounded-xl border border-[#222222] bg-[#0a0a0a] p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-medium text-red-400">Delete Task</h2>
+          <h2 className="text-lg font-medium text-white">Delete Task</h2>
           <button
             onClick={onClose}
             disabled={isDeleting}
@@ -34,10 +34,10 @@ export default function ConfirmDeleteModal({ isOpen, onClose, onConfirm, isDelet
             type="button"
             onClick={onConfirm}
             disabled={isDeleting}
-            className="flex items-center gap-2 rounded-md bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:opacity-50"
           >
             {isDeleting ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-400 border-t-transparent" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
               <Trash2 className="h-4 w-4" />
             )}

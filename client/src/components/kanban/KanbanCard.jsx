@@ -6,17 +6,17 @@ const priorityConfig = {
   high: {
     label: "High",
     icon: AlertCircle,
-    badgeClass: "bg-red-500/10 text-red-400 border-red-500/20",
+    badgeClass: "bg-white/10 text-white border-white/20",
   },
   medium: {
     label: "Medium",
     icon: AlertTriangle,
-    badgeClass: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    badgeClass: "bg-white/10 text-gray-300 border-white/20",
   },
   low: {
     label: "Low",
     icon: ArrowDown,
-    badgeClass: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    badgeClass: "bg-white/10 text-gray-300 border-white/20",
   },
 };
 
@@ -60,9 +60,9 @@ export default function KanbanCard({ task, onEditClick, onDeleteClick }) {
         shadow-sm
         transition-all
         hover:border-[#424248]
-        hover:bg-[#202024]
+        hover:bg-[#111111]
         active:cursor-grabbing
-        ${isDragging ? "z-50 opacity-40 ring-1 ring-violet-500" : ""}
+        ${isDragging ? "z-50 opacity-40 ring-1 ring-white" : ""}
       `}
     >
       {/* Top row: ID + Delete Action */}
@@ -77,7 +77,7 @@ export default function KanbanCard({ task, onEditClick, onDeleteClick }) {
             e.stopPropagation();
             onDeleteClick && onDeleteClick(task);
           }}
-          className="rounded p-1 text-[#646469] opacity-0 transition hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+          className="rounded p-1 text-[#646469] opacity-0 transition hover:bg-white/10 hover:text-white group-hover:opacity-100"
           title="Delete task"
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -109,7 +109,7 @@ export default function KanbanCard({ task, onEditClick, onDeleteClick }) {
         {/* Assignee Avatar / Name */}
         {task.assignee ? (
           <div className="flex items-center gap-1.5">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/20 text-[10px] font-bold text-violet-300">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-black/20 text-[10px] font-bold text-white">
               {task.assignee.charAt(0).toUpperCase()}
             </div>
             <span className="max-w-[80px] truncate text-[11px] text-[#9ca3af]">

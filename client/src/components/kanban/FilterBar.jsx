@@ -29,7 +29,7 @@ export default function FilterBar({
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#242426] bg-[#121214] px-4 py-2 text-xs">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1a1a1a] bg-[#050505] px-4 py-2 text-xs">
       <div className="flex flex-wrap items-center gap-3">
         {/* Search Input */}
         <div className="relative flex items-center">
@@ -39,7 +39,7 @@ export default function FilterBar({
             value={filters.search || ""}
             onChange={(e) => updateFilters({ search: e.target.value })}
             placeholder="Search tasks..."
-            className="h-7 w-48 rounded-md border border-[#2f3032] bg-[#1a1a1c] pl-8 pr-2 text-xs text-[#e6e6e7] placeholder-[#6d6d72] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a]"
+            className="h-7 w-48 rounded-md border border-[#222222] bg-[#0a0a0a] pl-8 pr-2 text-xs text-[#e6e6e7] placeholder-[#6d6d72] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a]"
           />
           {filters.search && (
             <button
@@ -57,7 +57,7 @@ export default function FilterBar({
           <select
             value={filters.priority || ""}
             onChange={(e) => updateFilters({ priority: e.target.value })}
-            className="h-7 rounded-md border border-[#2f3032] bg-[#1a1a1c] px-2 text-xs text-[#d5d5d8] focus:border-[#55555a] focus:outline-none"
+            className="h-7 rounded-md border border-[#222222] bg-[#0a0a0a] px-2 text-xs text-[#d5d5d8] focus:border-[#55555a] focus:outline-none"
           >
             <option value="">All Priorities</option>
             <option value="low">Low Priority</option>
@@ -69,10 +69,10 @@ export default function FilterBar({
         {/* Assignee Filter */}
         <div className="flex items-center gap-1.5">
           {filters.assignee ? (
-            <div className="flex h-7 items-center gap-1.5 rounded-md border border-[#303033] bg-[#1b1b1d] px-2 text-xs text-[#d5d5d8]">
+            <div className="flex h-7 items-center gap-1.5 rounded-md border border-[#222222] bg-[#0a0a0a] px-2 text-xs text-[#d5d5d8]">
               <User className="h-3.5 w-3.5 text-[#9ca3af]" />
               <span className="text-[#9ca3af]">Assignee:</span>
-              <span className="font-semibold text-violet-300">
+              <span className="font-semibold text-white">
                 {filters.assignee}
               </span>
               <button
@@ -96,7 +96,7 @@ export default function FilterBar({
                   setIsAddingAssignee(false);
                 }}
                 placeholder="Type assignee name..."
-                className="h-7 w-36 rounded-md border border-[#303033] bg-[#1b1b1d] px-2 text-xs text-[#e6e6e7] placeholder-[#6d6d72] focus:border-[#55555a] focus:outline-none"
+                className="h-7 w-36 rounded-md border border-[#222222] bg-[#0a0a0a] px-2 text-xs text-[#e6e6e7] placeholder-[#6d6d72] focus:border-[#55555a] focus:outline-none"
               />
             </form>
           ) : (
@@ -110,7 +110,7 @@ export default function FilterBar({
                     updateFilters({ assignee: e.target.value });
                   }
                 }}
-                className="h-7 rounded-md border border-[#2f3032] bg-[#1a1a1c] px-2 text-xs text-[#d5d5d8] focus:border-[#55555a] focus:outline-none"
+                className="h-7 rounded-md border border-[#222222] bg-[#0a0a0a] px-2 text-xs text-[#d5d5d8] focus:border-[#55555a] focus:outline-none"
               >
                 <option value="">All Assignees</option>
                 {assignees.map((a) => (
@@ -139,14 +139,14 @@ export default function FilterBar({
       {/* Dev / Interview Testing Toggle: Deliberate API Failures */}
       {setSimulateErrors && (
         <div className="flex items-center gap-2">
-          <label className="flex cursor-pointer items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-[11px] text-amber-300 transition hover:bg-amber-500/10">
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+          <label className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/20 bg-white/5 px-2.5 py-1 text-[11px] text-gray-300 transition hover:bg-white/10">
+            <AlertTriangle className="h-3.5 w-3.5 text-gray-300" />
             <span>Simulate API Failure (Test Rollback)</span>
             <input
               type="checkbox"
               checked={simulateErrors}
               onChange={(e) => setSimulateErrors(e.target.checked)}
-              className="ml-1 accent-amber-500"
+              className="ml-1 accent-white"
             />
           </label>
         </div>

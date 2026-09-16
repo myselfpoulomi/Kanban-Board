@@ -69,7 +69,7 @@ export default function TaskModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-[#303033] bg-[#1b1b1d] p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-xl border border-[#222222] bg-[#0a0a0a] p-6 shadow-2xl">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-medium text-[#f1f1f1]">
             {isEditing ? "Edit Task" : "Add New Task"}
@@ -87,7 +87,7 @@ export default function TaskModal({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-[#9ca3af]">
-              Title <span className="text-red-400">*</span>
+              Title <span className="text-white">*</span>
             </label>
             <input
               type="text"
@@ -96,7 +96,7 @@ export default function TaskModal({
               value={title}
               onChange={handleFieldChange(setTitle)}
               disabled={isSubmitting}
-              className="w-full rounded-md border border-[#303033] bg-[#0f0f10] px-3 py-2 text-sm text-[#e6e6e7] placeholder-[#55555a] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
+              className="w-full rounded-md border border-[#222222] bg-[#000000] px-3 py-2 text-sm text-[#e6e6e7] placeholder-[#55555a] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
               placeholder="e.g. Implement OAuth login..."
             />
           </div>
@@ -110,7 +110,7 @@ export default function TaskModal({
               value={description}
               onChange={handleFieldChange(setDescription)}
               disabled={isSubmitting}
-              className="w-full resize-none rounded-md border border-[#303033] bg-[#0f0f10] px-3 py-2 text-sm text-[#e6e6e7] placeholder-[#55555a] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
+              className="w-full resize-none rounded-md border border-[#222222] bg-[#000000] px-3 py-2 text-sm text-[#e6e6e7] placeholder-[#55555a] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
               placeholder="Add optional context or details..."
             />
           </div>
@@ -124,7 +124,7 @@ export default function TaskModal({
                 value={status}
                 onChange={handleFieldChange(setStatus)}
                 disabled={isSubmitting}
-                className="w-full rounded-md border border-[#303033] bg-[#0f0f10] px-3 py-2 text-sm text-[#e6e6e7] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
+                className="w-full rounded-md border border-[#222222] bg-[#000000] px-3 py-2 text-sm text-[#e6e6e7] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
               >
                 <option value="backlog">Backlog</option>
                 <option value="todo">Todo</option>
@@ -141,7 +141,7 @@ export default function TaskModal({
                 value={priority}
                 onChange={handleFieldChange(setPriority)}
                 disabled={isSubmitting}
-                className="w-full rounded-md border border-[#303033] bg-[#0f0f10] px-3 py-2 text-sm text-[#e6e6e7] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
+                className="w-full rounded-md border border-[#222222] bg-[#000000] px-3 py-2 text-sm text-[#e6e6e7] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -159,7 +159,7 @@ export default function TaskModal({
               value={assignee}
               onChange={handleFieldChange(setAssignee)}
               disabled={isSubmitting}
-              className="w-full rounded-md border border-[#303033] bg-[#0f0f10] px-3 py-2 text-sm text-[#e6e6e7] placeholder-[#55555a] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
+              className="w-full rounded-md border border-[#222222] bg-[#000000] px-3 py-2 text-sm text-[#e6e6e7] placeholder-[#55555a] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a] disabled:opacity-50"
               placeholder="e.g. Alice, Bob..."
             />
           </div>
@@ -176,7 +176,7 @@ export default function TaskModal({
             <button
               type="submit"
               disabled={!title.trim() || isSubmitting || (!isDirty && isEditing)}
-              className="flex items-center gap-2 rounded-md bg-[#f1f1f1] px-4 py-2 text-sm font-medium text-[#0f0f10] transition-colors hover:bg-white disabled:opacity-50"
+              className="flex items-center gap-2 rounded-md bg-[#f1f1f1] px-4 py-2 text-sm font-medium text-[#000000] transition-colors hover:bg-white disabled:opacity-50"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {isSubmitting ? "Saving..." : isEditing ? "Save Changes" : "Create Task"}

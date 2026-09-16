@@ -166,8 +166,8 @@ export default function KanbanBoard() {
   // Loading State
   if (isLoading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-[#0f0f10] text-white">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#333336] border-t-violet-400" />
+      <div className="flex h-screen flex-col items-center justify-center bg-[#000000] text-white">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#333336] border-t-white" />
         <p className="mt-4 text-xs tracking-wide text-[#9ca3af]">
           Connecting to Kanban board...
         </p>
@@ -178,11 +178,11 @@ export default function KanbanBoard() {
   // Error State
   if (error) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-[#0f0f10] text-white">
-        <p className="mb-4 text-sm text-red-400 font-medium">{error}</p>
+      <div className="flex h-screen flex-col items-center justify-center bg-[#000000] text-white">
+        <p className="mb-4 text-sm text-white font-medium">{error}</p>
         <button
           onClick={refetch}
-          className="rounded-md bg-[#252528] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#35353a]"
+          className="rounded-md bg-[#111111] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#2a2a2a]"
         >
           Retry Connection
         </button>
@@ -191,15 +191,15 @@ export default function KanbanBoard() {
   }
 
   return (
-    <div className="flex h-screen min-h-0 flex-col bg-[#0f0f10] text-white select-none">
+    <div className="flex h-screen min-h-0 flex-col bg-[#000000] text-white select-none">
       {/* Top Header Bar */}
-      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#242426] bg-[#0f0f10] px-4">
+      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#1a1a1a] bg-[#000000] px-4">
         <div className="flex items-center gap-2.5">
-          <div className="h-2.5 w-2.5 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
+          <div className="h-2.5 w-2.5 rounded-full bg-white shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
           <span className="text-[13px] font-semibold text-[#f1f1f1]">
             Project Sprint Board
           </span>
-          <span className="rounded-full bg-[#1c1c1f] px-2 py-0.5 text-[10px] font-medium text-[#7a7a82]">
+          <span className="rounded-full bg-[#0a0a0a] px-2 py-0.5 text-[10px] font-medium text-[#7a7a82]">
             {totalTasks} active tasks
           </span>
         </div>
@@ -211,7 +211,7 @@ export default function KanbanBoard() {
               setActiveColumnForNewTask("backlog");
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-1.5 rounded-md bg-violet-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-violet-600 active:scale-95"
+            className="flex items-center gap-1.5 rounded-md bg-white text-black px-3 py-1.5 text-xs font-medium shadow-sm transition hover:bg-gray-200 active:scale-95"
           >
             + New Task
           </button>
