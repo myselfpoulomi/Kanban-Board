@@ -186,12 +186,16 @@ export function useKanbanBoard() {
           simulateFailure: simulatedFailure,
         });
         // Replace temp task with confirmed server task
-        setTasks((current) => ({
-          ...current,
-          [taskData.status]: (current[taskData.status] || []).map((t) =>
-            t.id === tempId ? createdTask : t
-          ),
-        }));
+        setTasks((current) => {
+          const colList = current[taskData.status] || [];
+          const sseAddedAlready = colList.some((t) => t.id === createdTask.id);
+          return {
+            ...current,
+            [taskData.status]: sseAddedAlready
+              ? colList.filter((t) => t.id !== tempId)
+              : colList.map((t) => (t.id === tempId ? createdTask : t)),
+          };
+        });
         toast.success("Task created successfully");
         return createdTask;
       } catch (err) {
