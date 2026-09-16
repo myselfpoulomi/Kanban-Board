@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Trash2, AlertCircle, AlertTriangle, ArrowDown } from "lucide-react";
+import { Trash2, AlertCircle, AlertTriangle, ArrowDown, User } from "lucide-react";
 
 const priorityConfig = {
   high: {
@@ -108,11 +108,9 @@ export default function KanbanCard({ task, onEditClick, onDeleteClick }) {
 
         {/* Assignee Avatar / Name */}
         {task.assignee ? (
-          <div className="flex items-center gap-1.5">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-black/20 text-[10px] font-bold text-white">
-              {task.assignee.charAt(0).toUpperCase()}
-            </div>
-            <span className="max-w-[80px] truncate text-[11px] text-[#9ca3af]">
+          <div className="flex items-center gap-1.5 text-[#9ca3af]">
+            <User className="h-3.5 w-3.5" />
+            <span className="max-w-[80px] truncate text-[11px]">
               {task.assignee}
             </span>
           </div>
