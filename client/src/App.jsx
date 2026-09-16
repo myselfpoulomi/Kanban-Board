@@ -1,9 +1,13 @@
+import KanbanBoard from "./components/kanban/KanbanBoard";
+
 function App() {
   return (
-    <h1 className="text-4xl font-bold text-blue-600">
-      Hello Tailwind!
-    </h1>
-  )
+    <div className="flex h-screen overflow-hidden bg-[#0f0f10]">
+      <main className="min-w-0 flex-1">
+        <KanbanBoard />
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
