@@ -15,14 +15,17 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 
-import { initialColumns, initialTasks } from "./mockData";
+import { initialColumns } from "./mockData";
 import KanbanColumn from "./KanbanColumn";
 import KanbanCard from "./KanbanCard";
 import TaskModal from "./TaskModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
+import FilterBar from "./FilterBar";
+import { useFilters } from "../../hooks/useFilters";
 
 export default function KanbanBoard() {
   const [columns] = useState(initialColumns);
+  const [filters, updateFilters] = useFilters();
   const [tasks, setTasks] = useState({});
   const [activeTask, setActiveTask] = useState(null);
   
@@ -230,14 +233,27 @@ export default function KanbanBoard() {
     });
   };
 
+  const filteredTasks = useMemo(() => {
+    const result = {};
+    for (const [colId, colTasks] of Object.entries(tasks)) {
+      result[colId] = colTasks.filter(task => {
+        if (filters.assignee && task.assignee?.toLowerCase() !== filters.assignee.toLowerCase()) return false;
+        if (filters.priority && task.priority?.toLowerCase() !== filters.priority.toLowerCase()) return false;
+        if (filters.search && !task.title?.toLowerCase().includes(filters.search.toLowerCase())) return false;
+        return true;
+      });
+    }
+    return result;
+  }, [tasks, filters]);
+
   const totalTasks = useMemo(
     () =>
-      Object.values(tasks).reduce(
+      Object.values(filteredTasks).reduce(
         (total, columnTasks) =>
           total + columnTasks.length,
         0
       ),
-    [tasks]
+    [filteredTasks]
   );
 
   if (isLoading) {
@@ -291,6 +307,9 @@ export default function KanbanBoard() {
         </div>
       </div>
 
+      {/* Filter Bar */}
+      <FilterBar filters={filters} updateFilters={updateFilters} />
+
       {/* Kanban */}
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
         <DndContext
@@ -308,7 +327,7 @@ export default function KanbanBoard() {
               <KanbanColumn
                 key={column.id}
                 column={column}
-                tasks={tasks[column.id]}
+                tasks={filteredTasks[column.id] || []}
                 onAddTask={(colId) => {
                   setEditingTask(null);
                   setActiveColumnForNewTask(colId);
