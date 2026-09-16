@@ -1,0 +1,10 @@
+{
+  "name": "kanban-board",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "server": "cd server && bun app.js",
+    "client": "cd client && bun run dev",
+    "dev": "bun run server & bun run client"
+  }
+}

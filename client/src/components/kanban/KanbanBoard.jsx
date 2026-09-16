@@ -1,7 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
-import { api } from "../../api";
-
+import { useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -11,55 +8,44 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 
-import {
-  arrayMove,
-} from "@dnd-kit/sortable";
-
 import { initialColumns } from "./mockData";
 import KanbanColumn from "./KanbanColumn";
 import KanbanCard from "./KanbanCard";
 import TaskModal from "./TaskModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import FilterBar from "./FilterBar";
+import { useKanbanBoard } from "../../hooks/useKanbanBoard";
 import { useFilters } from "../../hooks/useFilters";
 
 export default function KanbanBoard() {
   const [columns] = useState(initialColumns);
   const [filters, updateFilters] = useFilters();
-  const [tasks, setTasks] = useState({});
-  const [activeTask, setActiveTask] = useState(null);
-  
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [simulateErrors, setSimulateErrors] = useState(false);
 
+  const {
+    tasks,
+    isLoading,
+    error,
+    refetch,
+    moveTask,
+    createTask,
+    updateTask,
+    deleteTask,
+  } = useKanbanBoard();
+
+  const [activeTask, setActiveTask] = useState(null);
+  const [activeSourceCol, setActiveSourceCol] = useState(null);
+
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeColumnForNewTask, setActiveColumnForNewTask] = useState(null);
+  const [activeColumnForNewTask, setActiveColumnForNewTask] = useState("backlog");
   const [editingTask, setEditingTask] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Store the previous state for rollbacks
-  const previousTasksRef = useRef({});
-
-  useEffect(() => {
-    let mounted = true;
-    const fetchBoard = async () => {
-      try {
-        setIsLoading(true);
-        const data = await api.getBoard();
-        if (mounted) setTasks(data);
-      } catch (err) {
-        if (mounted) setError(err.message);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-    fetchBoard();
-    return () => { mounted = false; };
-  }, []);
-
+  // DnD Sensors with distance activation to allow click events on cards
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -68,178 +54,95 @@ export default function KanbanBoard() {
     })
   );
 
-  /*
-   * Find which column contains a task.
-   */
+  // Derive unique assignees list from all current tasks
+  const assignees = useMemo(() => {
+    const set = new Set();
+    Object.values(tasks).forEach((colTasks) => {
+      colTasks.forEach((t) => {
+        if (t.assignee && t.assignee.trim()) {
+          set.add(t.assignee.trim());
+        }
+      });
+    });
+    return Array.from(set).sort();
+  }, [tasks]);
+
+  // Find column containing a task ID
   const findColumn = (taskId) => {
     if (taskId in tasks) {
       return taskId;
     }
-
     return Object.keys(tasks).find((columnId) =>
-      tasks[columnId].some(
-        (task) => task.id === taskId
-      )
+      tasks[columnId]?.some((task) => task.id === taskId)
     );
   };
 
-  /*
-   * Start dragging.
-   */
+  // Drag handlers
   const handleDragStart = ({ active }) => {
     const columnId = findColumn(active.id);
-
     if (!columnId) return;
 
-    const task = tasks[columnId].find(
-      (item) => item.id === active.id
-    );
-
+    const task = tasks[columnId]?.find((item) => item.id === active.id);
     setActiveTask(task || null);
+    setActiveSourceCol(columnId);
   };
 
-  /*
-   * Handle movement between columns.
-   */
-  const handleDragOver = ({ active, over }) => {
-    if (!over) return;
-
-    const activeColumn = findColumn(active.id);
-    const overColumn = findColumn(over.id);
-
-    if (!activeColumn || !overColumn) return;
-
-    if (activeColumn === overColumn) {
-      return;
-    }
-
-    setTasks((current) => {
-      const activeItems = current[activeColumn];
-      const overItems = current[overColumn];
-
-      const activeIndex = activeItems.findIndex(
-        (item) => item.id === active.id
-      );
-
-      if (activeIndex === -1) {
-        return current;
-      }
-
-      const movedTask = activeItems[activeIndex];
-
-      const newActiveItems = activeItems.filter(
-        (item) => item.id !== active.id
-      );
-
-      /*
-       * If dropping over another task,
-       * insert before that task.
-       */
-      const overIndex = overItems.findIndex(
-        (item) => item.id === over.id
-      );
-
-      const insertAt =
-        overIndex >= 0
-          ? overIndex
-          : overItems.length;
-
-      const newOverItems = [
-        ...overItems.slice(0, insertAt),
-        movedTask,
-        ...overItems.slice(insertAt),
-      ];
-
-      return {
-        ...current,
-        [activeColumn]: newActiveItems,
-        [overColumn]: newOverItems,
-      };
-    });
-
-    // We don't persist handleDragOver to API immediately to avoid spamming the network,
-    // wait for handleDragEnd.
-  };
-
-  /*
-   * Reorder cards after dropping.
-   */
   const handleDragEnd = ({ active, over }) => {
+    const activeTaskId = active.id;
+    const sourceCol = activeSourceCol || findColumn(activeTaskId);
     setActiveTask(null);
+    setActiveSourceCol(null);
 
-    if (!over) return;
+    if (!over || !sourceCol) return;
 
-    const activeColumn = findColumn(active.id);
-    const overColumn = findColumn(over.id);
+    const overId = over.id;
+    let targetCol = findColumn(overId);
 
-    if (!activeColumn || !overColumn) return;
-
-    if (active.id === over.id) {
-      return;
+    // If dropped directly onto empty column container
+    if (!targetCol && overId in tasks) {
+      targetCol = overId;
     }
 
-    // Capture state for rollback
-    const previousState = { ...tasks };
-    const newIndex = tasks[overColumn].findIndex(item => item.id === over.id);
+    if (!targetCol) return;
 
-    // If moved between columns, handleDragOver already handled local state optimistically, 
-    // but we need to persist it here.
-    if (activeColumn !== overColumn) {
-       const insertAt = newIndex >= 0 ? newIndex : tasks[overColumn].length;
-       const promise = api.updateTask(active.id, { status: overColumn, position: insertAt });
-       toast.promise(promise, {
-          loading: "Moving task...",
-          success: "Task moved",
-          error: (err) => {
-            setTasks(previousState); // rollback
-            return "Failed to move task. Reverted changes.";
-          }
-       });
-       return;
+    // Calculate new index in target column
+    const targetItems = tasks[targetCol] || [];
+    const overItemIndex = targetItems.findIndex((t) => t.id === overId);
+    let newPosition;
+
+    if (overItemIndex >= 0) {
+      newPosition = overItemIndex;
+    } else {
+      newPosition = targetItems.length;
     }
 
-    setTasks((current) => {
-      const items = current[activeColumn];
-
-      const oldIndex = items.findIndex(
-        (item) => item.id === active.id
-      );
-
-      const newIndex = items.findIndex(
-        (item) => item.id === over.id
-      );
-
-      if (oldIndex === -1 || newIndex === -1) {
-        return current;
-      }
-
-      const newItems = arrayMove(items, oldIndex, newIndex);
-      
-      return {
-        ...current,
-        [activeColumn]: newItems,
-      };
-    });
-
-    // Trigger API call for reorder within same column
-    const promise = api.updateTask(active.id, { position: newIndex });
-    toast.promise(promise, {
-      loading: "Saving...",
-      success: "Reordered successfully",
-      error: (err) => {
-        setTasks(previousState);
-        return "Failed to save reorder. Reverted changes.";
-      }
-    });
+    // Trigger optimistic move with rollback on error
+    moveTask(activeTaskId, sourceCol, targetCol, newPosition, simulateErrors);
   };
 
+  // Apply Search & Filters
   const filteredTasks = useMemo(() => {
     const result = {};
     for (const [colId, colTasks] of Object.entries(tasks)) {
-      result[colId] = colTasks.filter(task => {
-        if (filters.assignee && task.assignee?.toLowerCase() !== filters.assignee.toLowerCase()) return false;
-        if (filters.priority && task.priority?.toLowerCase() !== filters.priority.toLowerCase()) return false;
-        if (filters.search && !task.title?.toLowerCase().includes(filters.search.toLowerCase())) return false;
+      result[colId] = (colTasks || []).filter((task) => {
+        if (
+          filters.assignee &&
+          task.assignee?.toLowerCase() !== filters.assignee.toLowerCase()
+        ) {
+          return false;
+        }
+        if (
+          filters.priority &&
+          task.priority?.toLowerCase() !== filters.priority.toLowerCase()
+        ) {
+          return false;
+        }
+        if (
+          filters.search &&
+          !task.title?.toLowerCase().includes(filters.search.toLowerCase())
+        ) {
+          return false;
+        }
         return true;
       });
     }
@@ -249,80 +152,85 @@ export default function KanbanBoard() {
   const totalTasks = useMemo(
     () =>
       Object.values(filteredTasks).reduce(
-        (total, columnTasks) =>
-          total + columnTasks.length,
+        (total, columnTasks) => total + columnTasks.length,
         0
       ),
     [filteredTasks]
   );
 
+  // Loading State
   if (isLoading) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-[#0f0f10] text-white">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-t-2 border-[#55555a] border-t-[#f1f1f1]" />
-        <p className="mt-4 text-sm text-[#9ca3af]">Loading board...</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#333336] border-t-violet-400" />
+        <p className="mt-4 text-xs tracking-wide text-[#9ca3af]">
+          Connecting to Kanban board...
+        </p>
       </div>
     );
   }
 
+  // Error State
   if (error) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-[#0f0f10] text-white">
-        <p className="mb-4 text-sm text-red-400">{error}</p>
-        <button onClick={() => window.location.reload()} className="rounded bg-[#2c2c2f] px-4 py-2 hover:bg-[#3c3c3f]">
-          Retry
+        <p className="mb-4 text-sm text-red-400 font-medium">{error}</p>
+        <button
+          onClick={refetch}
+          className="rounded-md bg-[#252528] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#35353a]"
+        >
+          Retry Connection
         </button>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen min-h-0 flex-col bg-[#0f0f10] text-white">
-      {/* Board top bar */}
-      <div className="flex h-11 shrink-0 items-center border-b border-[#242426] px-4">
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-violet-400" />
-
-          <span className="text-[12px] font-semibold text-[#d5d5d8]">
-            Demo Board
+    <div className="flex h-screen min-h-0 flex-col bg-[#0f0f10] text-white select-none">
+      {/* Top Header Bar */}
+      <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#242426] bg-[#0f0f10] px-4">
+        <div className="flex items-center gap-2.5">
+          <div className="h-2.5 w-2.5 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
+          <span className="text-[13px] font-semibold text-[#f1f1f1]">
+            Project Sprint Board
           </span>
-
-          <span className="text-[10px] text-[#55555a]">
-            {totalTasks} issues
+          <span className="rounded-full bg-[#1c1c1f] px-2 py-0.5 text-[10px] font-medium text-[#7a7a82]">
+            {totalTasks} active tasks
           </span>
         </div>
 
-        <div className="ml-auto flex items-center gap-1">
-          <button className="rounded px-2 py-1 text-[10px] text-[#6d6d72] hover:bg-white/5 hover:text-[#aaaab0]">
-            Filter
-          </button>
-
-          <button className="rounded px-2 py-1 text-[10px] text-[#6d6d72] hover:bg-white/5 hover:text-[#aaaab0]">
-            Sort
-          </button>
-
-          <button className="rounded px-2 py-1 text-[10px] text-[#6d6d72] hover:bg-white/5 hover:text-[#aaaab0]">
-            •••
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setEditingTask(null);
+              setActiveColumnForNewTask("backlog");
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 rounded-md bg-violet-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-violet-600 active:scale-95"
+          >
+            + New Task
           </button>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <FilterBar filters={filters} updateFilters={updateFilters} />
+      {/* Search, Filter & Rollback Simulation Bar */}
+      <FilterBar
+        filters={filters}
+        updateFilters={updateFilters}
+        assignees={assignees}
+        simulateErrors={simulateErrors}
+        setSimulateErrors={setSimulateErrors}
+      />
 
-      {/* Kanban */}
-      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+      {/* Kanban Columns with DnD */}
+      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden p-3">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
-          onDragStart={(e) => {
-            previousTasksRef.current = tasks;
-            handleDragStart(e);
-          }}
-          onDragOver={handleDragOver}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex h-full w-max sm:w-full">
+          <div className="flex h-full gap-3">
             {columns.map((column) => (
               <KanbanColumn
                 key={column.id}
@@ -346,7 +254,7 @@ export default function KanbanBoard() {
 
           <DragOverlay>
             {activeTask ? (
-              <div className="w-[190px]">
+              <div className="w-[260px] opacity-95 shadow-2xl rotate-1">
                 <KanbanCard task={activeTask} />
               </div>
             ) : null}
@@ -354,6 +262,7 @@ export default function KanbanBoard() {
         </DndContext>
       </div>
 
+      {/* Create / Edit Task Modal */}
       <TaskModal
         isOpen={isModalOpen}
         defaultStatus={activeColumnForNewTask}
@@ -364,68 +273,36 @@ export default function KanbanBoard() {
           setEditingTask(null);
         }}
         onSave={async (taskData) => {
-          setIsSubmitting(true);
-          const previousState = { ...tasks };
-          const isEdit = !!editingTask;
-          
-          // Optimistic update
-          setTasks((prev) => {
-            const next = { ...prev };
-            // If edit, remove from old location first
-            if (isEdit) {
-              const oldStatus = editingTask.status;
-              if (next[oldStatus]) {
-                next[oldStatus] = next[oldStatus].filter(t => t.id !== taskData.id);
-              }
-            }
-            next[taskData.status] = [...(next[taskData.status] || []), taskData];
-            return next;
-          });
-
           try {
-            if (isEdit) {
-               await api.updateTask(taskData.id, taskData);
-               toast.success("Task updated");
+            setIsSubmitting(true);
+            if (editingTask) {
+              await updateTask(editingTask.id, taskData, simulateErrors);
             } else {
-               await api.createTask(taskData);
-               toast.success("Task created");
+              await createTask(taskData, simulateErrors);
             }
             setIsModalOpen(false);
             setEditingTask(null);
-          } catch (err) {
-            setTasks(previousState);
-            toast.error(isEdit ? "Failed to update task" : "Failed to create task");
+          } catch {
+            // Error handling & rollback is managed inside useKanbanBoard
           } finally {
             setIsSubmitting(false);
           }
         }}
       />
 
+      {/* Delete Confirmation Modal */}
       <ConfirmDeleteModal
-        isOpen={!!taskToDelete}
+        isOpen={Boolean(taskToDelete)}
         isDeleting={isDeleting}
         onClose={() => setTaskToDelete(null)}
         onConfirm={async () => {
           if (!taskToDelete) return;
-          setIsDeleting(true);
-          const previousState = { ...tasks };
-          
-          // Optimistic delete
-          setTasks((prev) => {
-            const next = { ...prev };
-            if (next[taskToDelete.status]) {
-              next[taskToDelete.status] = next[taskToDelete.status].filter(t => t.id !== taskToDelete.id);
-            }
-            return next;
-          });
-
           try {
-            await api.deleteTask(taskToDelete.id);
-            toast.success("Task deleted");
+            setIsDeleting(true);
+            await deleteTask(taskToDelete.id, taskToDelete.status, simulateErrors);
             setTaskToDelete(null);
-          } catch (err) {
-            setTasks(previousState);
-            toast.error("Failed to delete task");
+          } catch {
+            // Error toast & rollback handled in hook
           } finally {
             setIsDeleting(false);
           }

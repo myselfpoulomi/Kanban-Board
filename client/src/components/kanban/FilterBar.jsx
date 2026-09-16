@@ -1,84 +1,156 @@
-import { useState } from 'react';
-import { User, X, Plus } from 'lucide-react';
+import { useState } from "react";
+import { Search, User, SlidersHorizontal, X, AlertTriangle } from "lucide-react";
 
-export default function FilterBar({ filters, updateFilters }) {
-  const [isAdding, setIsAdding] = useState(false);
-  const [inputValue, setInputValue] = useState('');
+export default function FilterBar({
+  filters,
+  updateFilters,
+  assignees = [],
+  simulateErrors,
+  setSimulateErrors,
+}) {
+  const [isAddingAssignee, setIsAddingAssignee] = useState(false);
+  const [assigneeInput, setAssigneeInput] = useState("");
+
+  const hasActiveFilters = Boolean(
+    filters.search || filters.priority || filters.assignee
+  );
 
   const handleClear = () => {
-    updateFilters({ search: '', priority: '', assignee: '' });
+    updateFilters({ search: "", priority: "", assignee: "" });
   };
 
-  const handleAddSubmit = (e) => {
+  const handleAssigneeSubmit = (e) => {
     e.preventDefault();
-    if (inputValue.trim()) {
-      updateFilters({ assignee: inputValue.trim() });
+    if (assigneeInput.trim()) {
+      updateFilters({ assignee: assigneeInput.trim() });
     }
-    setInputValue('');
-    setIsAdding(false);
+    setAssigneeInput("");
+    setIsAddingAssignee(false);
   };
 
   return (
-    <div className="flex h-10 items-center border-b border-[#242426] bg-[#0f0f10] px-4">
-      <div className="flex flex-1 items-center gap-2">
-        {filters.assignee && (
-          <div className="flex items-center gap-2 rounded-md border border-[#303033] bg-[#1b1b1d] px-2 py-1 text-[11px]">
-            <User className="h-3 w-3 text-[#9ca3af]" />
-            <span className="text-[#9ca3af]">Assignee</span>
-            <span className="text-[#55555a]">is</span>
-            <div className="flex items-center gap-1.5 rounded bg-amber-500/10 px-1.5 py-0.5 text-amber-500">
-               <div className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500/20 text-[9px] font-bold">
-                 {filters.assignee.charAt(0).toUpperCase()}
-               </div>
-               <span className="font-medium">{filters.assignee}</span>
-            </div>
-            <button 
-              onClick={() => updateFilters({ assignee: '' })}
-              className="ml-1 flex items-center justify-center rounded text-[#646469] hover:bg-white/10 hover:text-[#f1f1f1]"
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#242426] bg-[#121214] px-4 py-2 text-xs">
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Search Input */}
+        <div className="relative flex items-center">
+          <Search className="absolute left-2.5 h-3.5 w-3.5 text-[#6d6d72]" />
+          <input
+            type="text"
+            value={filters.search || ""}
+            onChange={(e) => updateFilters({ search: e.target.value })}
+            placeholder="Search tasks..."
+            className="h-7 w-48 rounded-md border border-[#2f3032] bg-[#1a1a1c] pl-8 pr-2 text-xs text-[#e6e6e7] placeholder-[#6d6d72] focus:border-[#55555a] focus:outline-none focus:ring-1 focus:ring-[#55555a]"
+          />
+          {filters.search && (
+            <button
+              onClick={() => updateFilters({ search: "" })}
+              className="absolute right-2 text-[#6d6d72] hover:text-[#e6e6e7]"
             >
               <X className="h-3 w-3" />
             </button>
-          </div>
-        )}
-        
-        {!isAdding && !filters.assignee && (
-          <button 
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-1.5 rounded-md border border-dashed border-[#303033] bg-transparent px-2 py-1 text-[11px] text-[#646469] transition hover:border-[#55555a] hover:text-[#f1f1f1]"
+          )}
+        </div>
+
+        {/* Priority Filter */}
+        <div className="flex items-center gap-1.5">
+          <SlidersHorizontal className="h-3.5 w-3.5 text-[#6d6d72]" />
+          <select
+            value={filters.priority || ""}
+            onChange={(e) => updateFilters({ priority: e.target.value })}
+            className="h-7 rounded-md border border-[#2f3032] bg-[#1a1a1c] px-2 text-xs text-[#d5d5d8] focus:border-[#55555a] focus:outline-none"
           >
-            <User className="h-3 w-3" />
-            <span>choose assignee</span>
-          </button>
-        )}
+            <option value="">All Priorities</option>
+            <option value="low">Low Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="high">High Priority</option>
+          </select>
+        </div>
 
-        {isAdding && (
-          <form onSubmit={handleAddSubmit} className="flex items-center">
-            <input
-              autoFocus
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onBlur={() => setIsAdding(false)}
-              placeholder="Type assignee name..."
-              className="h-6 rounded border border-[#303033] bg-[#1b1b1d] px-2 text-[11px] text-[#e6e6e7] placeholder-[#55555a] focus:border-[#55555a] focus:outline-none"
-            />
-          </form>
-        )}
-      </div>
+        {/* Assignee Filter */}
+        <div className="flex items-center gap-1.5">
+          {filters.assignee ? (
+            <div className="flex h-7 items-center gap-1.5 rounded-md border border-[#303033] bg-[#1b1b1d] px-2 text-xs text-[#d5d5d8]">
+              <User className="h-3.5 w-3.5 text-[#9ca3af]" />
+              <span className="text-[#9ca3af]">Assignee:</span>
+              <span className="font-semibold text-violet-300">
+                {filters.assignee}
+              </span>
+              <button
+                onClick={() => updateFilters({ assignee: "" })}
+                className="ml-1 rounded text-[#6d6d72] hover:text-white"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ) : isAddingAssignee ? (
+            <form onSubmit={handleAssigneeSubmit} className="flex items-center">
+              <input
+                autoFocus
+                type="text"
+                value={assigneeInput}
+                onChange={(e) => setAssigneeInput(e.target.value)}
+                onBlur={() => {
+                  if (assigneeInput.trim()) {
+                    updateFilters({ assignee: assigneeInput.trim() });
+                  }
+                  setIsAddingAssignee(false);
+                }}
+                placeholder="Type assignee name..."
+                className="h-7 w-36 rounded-md border border-[#303033] bg-[#1b1b1d] px-2 text-xs text-[#e6e6e7] placeholder-[#6d6d72] focus:border-[#55555a] focus:outline-none"
+              />
+            </form>
+          ) : (
+            <div className="flex items-center gap-1">
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value === "__custom__") {
+                    setIsAddingAssignee(true);
+                  } else if (e.target.value) {
+                    updateFilters({ assignee: e.target.value });
+                  }
+                }}
+                className="h-7 rounded-md border border-[#2f3032] bg-[#1a1a1c] px-2 text-xs text-[#d5d5d8] focus:border-[#55555a] focus:outline-none"
+              >
+                <option value="">All Assignees</option>
+                {assignees.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+                <option value="__custom__">+ Custom Assignee...</option>
+              </select>
+            </div>
+          )}
+        </div>
 
-      <div className="flex items-center gap-3">
-        {(filters.search || filters.priority || filters.assignee) && (
-          <button 
+        {/* Clear Filters Button */}
+        {hasActiveFilters && (
+          <button
             onClick={handleClear}
-            className="text-[11px] font-medium text-[#9ca3af] transition hover:text-[#f1f1f1]"
+            className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-[#9ca3af] transition hover:bg-white/5 hover:text-white"
           >
+            <X className="h-3.5 w-3.5" />
             Clear
           </button>
         )}
-        <button className="rounded bg-[#2f3032] px-3 py-1 text-[11px] font-medium text-[#f1f1f1] transition hover:bg-[#414145]">
-          Save
-        </button>
       </div>
+
+      {/* Dev / Interview Testing Toggle: Deliberate API Failures */}
+      {setSimulateErrors && (
+        <div className="flex items-center gap-2">
+          <label className="flex cursor-pointer items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-[11px] text-amber-300 transition hover:bg-amber-500/10">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+            <span>Simulate API Failure (Test Rollback)</span>
+            <input
+              type="checkbox"
+              checked={simulateErrors}
+              onChange={(e) => setSimulateErrors(e.target.checked)}
+              className="ml-1 accent-amber-500"
+            />
+          </label>
+        </div>
+      )}
     </div>
   );
 }

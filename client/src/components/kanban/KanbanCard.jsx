@@ -1,7 +1,24 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SignalHigh, CheckCircle, Bug, Sun, Trash2 } from "lucide-react";
-import Label from "./Label";
+import { Trash2, AlertCircle, AlertTriangle, ArrowDown } from "lucide-react";
+
+const priorityConfig = {
+  high: {
+    label: "High",
+    icon: AlertCircle,
+    badgeClass: "bg-red-500/10 text-red-400 border-red-500/20",
+  },
+  medium: {
+    label: "Medium",
+    icon: AlertTriangle,
+    badgeClass: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  },
+  low: {
+    label: "Low",
+    icon: ArrowDown,
+    badgeClass: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  },
+};
 
 export default function KanbanCard({ task, onEditClick, onDeleteClick }) {
   const {
@@ -20,32 +37,37 @@ export default function KanbanCard({ task, onEditClick, onDeleteClick }) {
     transition,
   };
 
+  const priority = priorityConfig[task.priority] || priorityConfig.medium;
+  const PriorityIcon = priority.icon;
+
   return (
     <article
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
+      onClick={() => onEditClick && onEditClick(task)}
       className={`
         group
+        relative
         cursor-grab
         select-none
-        rounded-[8px]
-        border border-[#2f3032]
-        bg-[#1b1b1d]
-        px-3.5
-        py-3
+        rounded-lg
+        border
+        border-[#2b2b2f]
+        bg-[#1b1b1e]
+        p-3
         shadow-sm
-        transition-colors
-        hover:border-[#414145]
+        transition-all
+        hover:border-[#424248]
+        hover:bg-[#202024]
         active:cursor-grabbing
-        ${isDragging ? "z-50 opacity-50 ring-1 ring-[#414145]" : ""}
+        ${isDragging ? "z-50 opacity-40 ring-1 ring-violet-500" : ""}
       `}
-      onClick={() => onEditClick && onEditClick(task)}
     >
-      {/* Top row */}
+      {/* Top row: ID + Delete Action */}
       <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[12px] font-medium text-[#9ca3af]">
+        <span className="text-[11px] font-mono font-medium text-[#7a7a82]">
           {task.id}
         </span>
         <button
@@ -55,52 +77,48 @@ export default function KanbanCard({ task, onEditClick, onDeleteClick }) {
             e.stopPropagation();
             onDeleteClick && onDeleteClick(task);
           }}
-          className="rounded p-1 text-[#646469] opacity-0 transition-opacity hover:bg-white/5 hover:text-red-400 group-hover:opacity-100"
+          className="rounded p-1 text-[#646469] opacity-0 transition hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+          title="Delete task"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      {/* Title */}
-      <div className="flex items-center gap-2">
-        <Sun className="h-4 w-4 shrink-0 text-[#facc15]" />
-        <h3 className="text-[14px] font-medium leading-[17px] text-[#f1f1f1]">
-          {task.title}
-        </h3>
-      </div>
+      {/* Task Title */}
+      <h3 className="text-[13px] font-medium leading-snug text-[#f1f1f1]">
+        {task.title}
+      </h3>
 
-      {/* Description */}
+      {/* Description Preview */}
       {task.description && (
-        <p className="mt-2 text-[12px] leading-relaxed text-[#9ca3af] line-clamp-2">
+        <p className="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-[#8e8e96]">
           {task.description}
         </p>
       )}
 
-      {/* Priority Badge */}
-      {task.priority && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Label 
-            name={task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} 
-            color={task.priority === 'high' ? 'red' : task.priority === 'low' ? 'gray' : 'pink'} 
-            icon={SignalHigh}
-          />
-        </div>
-      )}
+      {/* Bottom Metadata: Priority & Assignee */}
+      <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#26262a]">
+        {/* Priority Badge */}
+        <span
+          className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium ${priority.badgeClass}`}
+        >
+          <PriorityIcon className="h-2.5 w-2.5" />
+          {priority.label}
+        </span>
 
-      {/* Assignee and Date row */}
-      <div className="mt-4 flex items-center justify-between">
+        {/* Assignee Avatar / Name */}
         {task.assignee ? (
           <div className="flex items-center gap-1.5">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500/20 text-[10px] font-bold text-indigo-400">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/20 text-[10px] font-bold text-violet-300">
               {task.assignee.charAt(0).toUpperCase()}
             </div>
-            <span className="text-[11px] text-[#9ca3af]">{task.assignee}</span>
+            <span className="max-w-[80px] truncate text-[11px] text-[#9ca3af]">
+              {task.assignee}
+            </span>
           </div>
-        ) : <div />}
-
-        <div className="text-[11px] font-medium text-[#77777c]">
-          {task.updatedAt ? new Date(task.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
-        </div>
+        ) : (
+          <span className="text-[10px] text-[#55555a]">Unassigned</span>
+        )}
       </div>
     </article>
   );
